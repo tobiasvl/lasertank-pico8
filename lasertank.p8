@@ -7,7 +7,15 @@ levels={
     "boot camp",
     "this is the laser tank boot camp. it shows you a little of everything. the hardest thing is probably the mirror you need to move in the top right corner.",
     "jim kindley",
+  },
+  {
+    "04111111111111111111111111100000041211111111111111111111101000000412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101005000412120000000000000500001010000004121200000000000000000010100000041212000000050000000000101000010412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101000000412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101000000212120f0f0f0f0f0f0f0f0f0f1000000412120f0f0f0f0f0f0f0f0f0f0f0500",
   }
+}
+
+modes={
+  play=0,
+  game_over=1
 }
 
 -- map direction and x,y coords to new coords
@@ -16,6 +24,13 @@ directions={
   [2]=function(x,y) return x+1,y end, --right
   [4]=function(x,y) return x,y-1 end, --up
   [8]=function(x,y) return x,y+1 end  --down
+}
+
+opposite_directions={
+  [1]=2,
+  [2]=1,
+  [4]=8,
+  [8]=4
 }
 
 -- map laser directions and mirrors to new laser direction
@@ -39,58 +54,78 @@ function _init()
   laser=nil
   control=true
   load_level(levels[1])
+  mode=modes.play
 end
 
 function _update()
-  if (laser) move_laser()
-  local under=static_actors[tank.y][tank.x].obj
-  --if (under==3) win
-  --if (under==4) game over
-  if (under==1 or under==30 or under>64) and not laser then
-    -- as long as we're on solid ground and no laser is firing,
-    -- we can control the tank
-    control=true
-  end
-  if not control then
-    -- if we're on a conveyor belt or ice, the tank is moved
-    -- forward, unless we're propped against a solid move_object
-    -- and thus have control over the tank
-    if (under==16) move_tank(4)
-    if (under==17) move_tank(2)
-    if (under==18) move_tank(8)
-    if (under==19) move_tank(1)
-    if (under==25) move_tank(tank.direction)
-    if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank(tank.direction)
-  end
-  local button=btnp()
-  if control and not laser and button==0x10 then
-    laser={x=tank.x,y=tank.y,direction=tank.direction}
-    move_laser()
-  elseif button==0x20 then
-    -- x
-  elseif control and not laser and button!=0 and button!=0x40 then
-    if tank.direction!=button then
-      turn_tank(button)
+  if mode==modes.play then
+    if laser then
+      move_laser()
     else
-      move_tank(button)
+      detect_tank()
+    end
+    local under=static_actors[tank.y][tank.x].obj
+    --if (under==3) win
+    if (under==4) mode=modes.game_over
+    if (under==1 or under==30 or under>64) and not laser then
+      -- as long as we're on solid ground and no laser is firing,
+      -- we can control the tank
+      control=true
+    end
+    if not control then
+      -- if we're on a conveyor belt or ice, the tank is moved
+      -- forward, unless we're propped against a solid move_object
+      -- and thus have control over the tank
+      if (under==16) move_tank(4)
+      if (under==17) move_tank(2)
+      if (under==18) move_tank(8)
+      if (under==19) move_tank(1)
+      if (under==25) move_tank(tank.direction)
+      if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank(tank.direction)
+      if (laser and laser.x==tank.x and laser.y==tank.y) mode=modes.game_over
+    end
+    local button=btnp()
+    if control and not laser and button==0x10 then
+      laser={x=tank.x,y=tank.y,direction=tank.direction}
+      move_laser()
+    elseif button==0x20 then
+      -- x
+    elseif control and not laser and button!=0 and button!=0x40 then
+      if tank.direction!=button then
+        turn_tank(button)
+      else
+        move_tank(button)
+      end
     end
   end
 end
 
 function _draw()
-  cls()
-  for t in all({static_actors,dynamic_actors}) do
-    for y=0,15 do
-      for x=0,15 do
-        local v=t[y][x]
-        if (v) mset(v.x,v.y,v.obj)
+  if mode==modes.play then
+    cls()
+    for t in all({static_actors,dynamic_actors}) do
+      for y=0,15 do
+        for x=0,15 do
+          local v=t[y][x]
+          if (v) mset(v.x,v.y,v.obj)
+        end
       end
+      map()
     end
+    if (laser) mset(laser.x,laser.y,laser.obj)
+    mset(tank.x,tank.y,tank.obj)
     map()
+  elseif mode==modes.game_over then
+    local msg="you are dead !!!"
+    rect(64-(#msg*2)-2,62,64+(#msg*2),70,8)
+    rectfill(64-(#msg*2)-1,63,64+(#msg*2)-1,69,0)
+    center(msg,64,8)
   end
-  if (laser) mset(laser.x,laser.y,laser.obj)
-  mset(tank.x,tank.y,tank.obj)
-  map()
+end
+
+function center(str,y,c)
+  c=c or 7
+  print(str,64-(#str*2),y,c)
 end
 
 function turn_tank(button)
@@ -138,6 +173,7 @@ end
 
 function move_laser()
   local new_x,new_y=directions[laser.direction](laser.x,laser.y)
+  if (new_x==tank.x and new_y==tank.y) mode=modes.game_over
   local obj=mget(new_x,new_y)
   if fget(obj,0) then
     -- movable object
@@ -205,6 +241,21 @@ function move_object(x,y,direction)
     dynamic_actors[y][x]=nil
     laser=nil
     control=false -- todo: hack?
+  end
+end
+
+function detect_tank()
+  for dir,move in pairs(directions) do
+    local x,y=tank.x,tank.y
+    repeat
+      x,y=move(x,y)
+    until fget(mget(x,y),1) or x<0 or x>15 or y<0 or y>15
+    if (mget(x,y)==8 and dir==8) or (mget(x,y)==9 and dir==1) or (mget(x,y)==10 and dir==4) or (mget(x,y)==11 and dir==2) then
+      laser={x=x,y=y,direction=opposite_directions[dir]}
+      laser.obj=laser.direction==1 or laser.direction==2 and 35 or 34
+      move_laser()
+      break
+    end
   end
 end
 
@@ -292,5 +343,5 @@ __gfx__
 0000000048800884000000004bb00bb40000000041100114000000004cc00cc4000000004aa00aa4000000004ee00ee400000000477007740000000045500554
 00000000448888440000000044bbbb4400000000441111440000000044cccc440000000044aaaa440000000044eeee4400000000447777440000000044555544
 __gff__
-0000010000020302030303030303030300000000020202020200000101010000000000000202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000020302030303030303030300000000020202020200000000000000000000000202020200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
