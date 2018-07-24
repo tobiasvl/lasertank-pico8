@@ -7,15 +7,26 @@ levels={
     "boot camp",
     "this is the laser tank boot camp. it shows you a little of everything. the hardest thing is probably the mirror you need to move in the top right corner.",
     "jim kindley",
+    2
   },
   {
     "04111111111111111111111111100000041211111111111111111111101000000412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101005000412120000000000000500001010000004121200000000000000000010100000041212000000050000000000101000010412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101000000412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101000000212120f0f0f0f0f0f0f0f0f0f1000000412120f0f0f0f0f0f0f0f0f0f0f0500",
   }
 }
 
+difficulties={
+  {"kids",10},
+  {"easy",12},
+  {"medium",11},
+  {"hard",2},
+  {"deadly",8}
+}
+
 modes={
   play=0,
-  game_over=1
+  game_over=1,
+  pause=2,
+  hint=3
 }
 
 -- map direction and x,y coords to new coords
@@ -53,12 +64,17 @@ function _init()
   tank={}
   laser=nil
   control=true
-  load_level(levels[1])
+  level=load_level(1)
   mode=modes.play
 end
 
 function _update()
-  if mode==modes.play then
+  if mode==modes.pause then
+    mode=modes.play
+  elseif mode==modes.hint then
+    if (btnp()!=0) mode=modes.play
+  elseif mode==modes.play then
+    menuitem(1,"show hint",function() mode=modes.hint end)
     if laser then
       move_laser()
     else
@@ -85,12 +101,15 @@ function _update()
       if (laser and laser.x==tank.x and laser.y==tank.y) mode=modes.game_over
     end
     local button=btnp()
+    if button==0x40 then
+      mode=modes.pause
+    end
     if control and not laser and button==0x10 then
       laser={x=tank.x,y=tank.y,direction=tank.direction}
       move_laser()
     elseif button==0x20 then
       -- x
-    elseif control and not laser and button!=0 and button!=0x40 then
+    elseif control and not laser and button!=0 then
       if tank.direction!=button then
         turn_tank(button)
       else
@@ -120,6 +139,21 @@ function _draw()
     rect(64-(#msg*2)-2,62,64+(#msg*2),70,8)
     rectfill(64-(#msg*2)-1,63,64+(#msg*2)-1,69,0)
     center(msg,64,8)
+  elseif mode==modes.pause then
+    rectfill(0,0,127,24,0)
+    center(level.title)
+    center("by",6,5)
+    center(level.author,12)
+    local difficulty=difficulties[level.difficulty]
+    center(level.number.." - "..difficulty[1],18,difficulty[2])
+  elseif mode==modes.hint then
+    rectfill(0,25,127,127,0)
+    local y=32
+    center("hint:",y,5)
+    for i=1,256,32 do
+      y+=6
+      print(sub(level.hint,i,i+32),0,y,7)
+    end
   end
 end
 
@@ -259,7 +293,8 @@ function detect_tank()
   end
 end
 
-function load_level(lvl)
+function load_level(lvl_number)
+  local lvl=levels[lvl_number]
   static_actors={}
   for y=0,15 do
     static_actors[y]={}
@@ -300,6 +335,7 @@ function load_level(lvl)
       end
     end
   end
+  return {number=lvl_number,title=lvl[2],hint=lvl[3],author=lvl[4],difficulty=lvl[5]}
 end
 __gfx__
 0000000044444444000bb000a4444444111cc11177777777eeeeeeee88588858000880000666666006666660066666600000000aa0000000eeeeee9aa988888e
