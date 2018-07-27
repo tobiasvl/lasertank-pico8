@@ -169,8 +169,8 @@ function turn_tank(button)
     [4]=2,
     [8]=28
   }
-  tank.direction=button
-  tank.obj=tank_sprites[button]
+  local spr=tank_sprites[button]
+  if (spr) tank.direction,tank.obj=button,spr
   return
 end
 
