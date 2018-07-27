@@ -149,7 +149,11 @@ function _draw()
     center("by",6,5)
     center(level.author,12)
     local difficulty=difficulties[level.difficulty]
-    center(level.number.." - "..difficulty[1],18,difficulty[2])
+    if difficulty then
+      center(level.number.." - "..difficulty[1],18,difficulty[2])
+    else
+      center(tostr(level.number),18)
+    end
   elseif mode==modes.hint then
     rectfill(0,25,127,127,0)
     local y=32
