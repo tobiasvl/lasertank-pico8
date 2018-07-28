@@ -113,7 +113,6 @@ function _update()
     if not control then
       if (under==25) move_tank()
       if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
-      if (laser and laser.x==tank.x and laser.y==tank.y) mode=modes.game_over
     end
     local button=btnp()
     if button==0x40 then
