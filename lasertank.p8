@@ -101,21 +101,18 @@ function _update()
     local under=static_actors[tank.y][tank.x].obj
     --if (under==3) win
     if (under==4) mode=modes.game_over
-    if (under==1 or under==30 or under>64) and not laser then
+    if (under==1 or under==30 or under>64 or not last_direction) and not laser then
       -- as long as we're on solid ground and no laser is firing,
       -- we can control the tank
       control=true
     end
+    if (under==16) move_tank(4)
+    if (under==17) move_tank(2)
+    if (under==18) move_tank(8)
+    if (under==19) move_tank(1)
     if not control then
-      -- if we're on a conveyor belt or ice, the tank is moved
-      -- forward, unless we're propped against a solid move_object
-      -- and thus have control over the tank
-      if (under==16) move_tank(4)
-      if (under==17) move_tank(2)
-      if (under==18) move_tank(8)
-      if (under==19) move_tank(1)
-      if (under==25) move_tank(tank.direction)
-      if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank(tank.direction)
+      if (under==25) move_tank()
+      if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
       if (laser and laser.x==tank.x and laser.y==tank.y) mode=modes.game_over
     end
     local button=btnp()
@@ -212,10 +209,14 @@ function turn_tank(button)
 end
 
 function move_tank(button)
-  new_x,new_y=directions[button](tank.x,tank.y)
+  if (not button) button=last_direction
+  if (not button) return
+  last_direction=button
+  local new_x,new_y=directions[button](tank.x,tank.y)
   if fget(mget(new_x,new_y),1) then
     -- solid object
     control=true
+    last_direction=nil
   elseif new_x<0 or new_x>15 or new_y<0 or new_y>15 then
     -- out of bounds
     control=true
