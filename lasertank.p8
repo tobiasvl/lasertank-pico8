@@ -31,8 +31,9 @@ difficulties={
 modes={
   play=0,
   game_over=1,
-  pause=2,
-  hint=3
+  win=2,
+  pause=3,
+  hint=4
 }
 
 -- map direction and x,y coords to new coords
@@ -79,6 +80,16 @@ function _update()
     if (btnp()!=0) mode=modes.play
   elseif mode==modes.game_over then
     if (btnp(4)) load_level(selected_level) mode=modes.play
+  elseif mode==modes.win then
+    if btnp(4) then
+      selected_level+=1
+      if selected_level<=#levels then
+        level=load_level(selected_level)
+        mode=modes.play
+      else
+        mode=modes.level_select
+      end
+    end
   elseif mode==modes.level_select then
     menuitem(1)
     menuitem(2)
@@ -99,7 +110,7 @@ function _update()
       if (not dynamic_actors[tank.y][tank.x]) detect_tank()
     end
     local under=static_actors[tank.y][tank.x].obj
-    --if (under==3) win
+    if (under==3) mode=modes.win
     if (under==4) mode=modes.game_over
     if (under==1 or under==30 or under>64 or not last_direction) and not laser then
       -- as long as we're on solid ground and no laser is firing,
@@ -153,6 +164,11 @@ function _draw()
     rect(64-(#msg*2)-2,62,64+(#msg*2),70,8)
     rectfill(64-(#msg*2)-1,63,64+(#msg*2)-1,69,0)
     center(msg,64,8)
+  elseif mode==modes.win then
+    local msg="you win !!!"
+    rect(64-(#msg*2)-2,62,64+(#msg*2),70,11)
+    rectfill(64-(#msg*2)-1,63,64+(#msg*2)-1,69,0)
+    center(msg,64,11)
   elseif mode==modes.pause then
     rectfill(0,0,127,24,0)
     center(level.title)
