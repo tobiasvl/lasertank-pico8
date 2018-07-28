@@ -314,10 +314,10 @@ function move_object(x,y,direction)
     laser=nil
     control=false -- todo: hack?
   else
-    if mget(new_x,new_y)>64 then
+    if static_actors[new_y][new_x].obj>64 then
       -- tunnel
-      for t in all(tunnels[mget(new_x,new_y)]) do
-        if not ((t.x==new_x and t.y==new_y) or (t.x==tank.x and t.y==tank.y) or (dynamic_actors[t.y][t.x] and not (t.x==x and t.y==y))) then
+      for t in all(tunnels[static_actors[new_y][new_x].obj]) do
+        if not ((t.x==new_x and t.y==new_y) or (dynamic_actors[t.y][t.x] and not (t.x==x and t.y==y))) then
           dynamic_actors[t.y][t.x]={x=t.x,y=t.y,obj=dynamic_actors[y][x].obj}
           if (not (t.x==x and t.y==y)) dynamic_actors[y][x]=nil
           laser=nil
