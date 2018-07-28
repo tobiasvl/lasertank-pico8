@@ -275,7 +275,7 @@ end
 function move_object(x,y,direction)
   local new_x,new_y=directions[direction](x,y)
   local obj=mget(x,y)
-  if (obj==8 and direction==8) or (obj==9 and direction==2) or (obj==10 and direction==4) or (obj==11 and direction==1) then
+  if (obj==8 and direction==8) or (obj==9 and direction==1) or (obj==10 and direction==4) or (obj==11 and direction==2) then
     -- destroy antitank
     dynamic_actors[y][x].obj+=28
     laser=nil
