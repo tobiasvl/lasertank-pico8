@@ -96,7 +96,7 @@ function _update()
     if laser then
       move_laser()
     else
-      detect_tank()
+      if (not dynamic_actors[tank.y][tank.x]) detect_tank()
     end
     local under=static_actors[tank.y][tank.x].obj
     --if (under==3) win
