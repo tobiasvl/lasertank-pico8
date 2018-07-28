@@ -67,11 +67,9 @@ rotate_mirrors={
 }
 
 function _init()
-  tank={}
-  laser=nil
-  control=true
-  level=load_level(1)
-  mode=modes.play
+  mode=modes.level_select
+  selected_level=1
+  page=0
 end
 
 function _update()
@@ -79,8 +77,22 @@ function _update()
     mode=modes.play
   elseif mode==modes.hint then
     if (btnp()!=0) mode=modes.play
+  elseif mode==modes.game_over then
+    if (btnp(4)) load_level(selected_level) mode=modes.play
+  elseif mode==modes.level_select then
+    menuitem(1)
+    menuitem(2)
+    if btnp(2) then
+      if (selected_level>1) selected_level-=1
+      if (selected_level<(page*20)+1) page-=1
+    elseif btnp(3) then
+      if (selected_level<#levels) selected_level+=1
+      if (selected_level>(page*20)+20) page+=1
+    end
+    if (btnp(4)) level=load_level(selected_level) mode=modes.play
   elseif mode==modes.play then
     menuitem(1,"show hint",function() mode=modes.hint end)
+    menuitem(2,"level select",function() mode=modes.level_select end)
     if laser then
       move_laser()
     else
@@ -164,6 +176,21 @@ function _draw()
       y+=6
       print(sub(level.hint,i,i+32),0,y,7)
     end
+  elseif mode==modes.level_select then
+    cls()
+    for i=(page*20)+1,(page*20)+20 do
+      if i<=#levels then
+        if selected_level==i then
+          local y=peek(0x5f27)
+          rectfill(peek(0x5f26),y,127,y+5,4)
+        end
+        local lvl=levels[i]
+        if (difficulties[lvl[5]]) color(difficulties[lvl[5]][2]) else color(7)
+        print(i.." "..lvl[2])
+      end
+    end
+    if (page>0) print("\148",120,0)
+    if ((page*20)+20<#levels) print("\131",120,114)
   end
 end
 
@@ -328,7 +355,6 @@ function load_level(lvl_number)
     x=flr((s-1)/32)
     local obj=tonum("0x"..sub(lvl[1],s,s+1))+1
     if obj==2 then
-      --assert(tank.x==nil)
       tank={x=x,y=y,direction=4,obj=2}
     elseif fget(obj,0) then
       dynamic_actors[y][x]={x=x,y=y,obj=obj}
@@ -345,6 +371,8 @@ function load_level(lvl_number)
       end
     end
   end
+  laser=nil
+  control=true
   return {number=lvl_number,title=lvl[2],hint=lvl[3],author=lvl[4],difficulty=lvl[5]}
 end
 __gfx__
