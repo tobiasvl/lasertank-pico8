@@ -289,8 +289,8 @@ function move_object(x,y,direction)
 end
 
 function detect_tank()
-  for dir,move in pairs(directions) do
-    local x,y=tank.x,tank.y
+  for dir in all({2,1,8,4}) do
+    local move,x,y=directions[dir],tank.x,tank.y
     repeat
       x,y=move(x,y)
     until fget(mget(x,y),1) or x<0 or x>15 or y<0 or y>15
