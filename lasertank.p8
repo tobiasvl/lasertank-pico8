@@ -93,6 +93,7 @@ function _update()
   elseif mode==modes.level_select then
     menuitem(1)
     menuitem(2)
+    menuitem(3)
     if btnp(2) then
       if (selected_level>1) selected_level-=1
       if (selected_level<(page*20)+1) page-=1
@@ -103,7 +104,8 @@ function _update()
     if (btnp(4)) level=load_level(selected_level) mode=modes.play
   elseif mode==modes.play then
     menuitem(1,"show hint",function() mode=modes.hint end)
-    menuitem(2,"level select",function() mode=modes.level_select end)
+    menuitem(2,"restart",function() load_level(selected_level) end)
+    menuitem(3,"level select",function() mode=modes.level_select end)
     if laser then
       move_laser()
     else
