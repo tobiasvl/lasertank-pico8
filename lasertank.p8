@@ -228,7 +228,8 @@ function move_tank(button)
   if (not button) return
   last_direction=button
   local new_x,new_y=directions[button](tank.x,tank.y)
-  if fget(mget(new_x,new_y),1) then
+  local under=mget(new_x,new_y)
+  if fget(under,1) then
     -- solid object
     control=true
     last_direction=nil
@@ -236,9 +237,10 @@ function move_tank(button)
     -- out of bounds
     control=true
   else
-    if mget(new_x,new_y)>64 then
+    if under>64 then
       -- tunnel
-      for t in all(tunnels[mget(new_x,new_y)]) do
+      if (not tunnels[under]) mode=modes.game_over return
+      for t in all(tunnels[under]) do
         if not ((t.x==new_x and t.y==new_y) or dynamic_actors[t.y][t.x]) then
           tank.x,tank.y=t.x,t.y
           return
@@ -246,7 +248,6 @@ function move_tank(button)
       end
     end
     tank.x,tank.y=new_x,new_y
-    local under=static_actors[new_y][new_x].obj
     if control then
       if (under==16) control=false
       if (under==17) control=false
