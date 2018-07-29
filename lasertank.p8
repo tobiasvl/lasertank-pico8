@@ -114,18 +114,25 @@ function _update()
     local under=static_actors[tank.y][tank.x].obj
     if (under==3) mode=modes.win
     if (under==4) mode=modes.game_over
-    if (under==1 or under==30 or under>64 or not last_direction) and not laser then
+    if (under==1 or under==30 or under>64 or dynamic_actors[tank.y][tank.x] or not last_direction) and not laser then
       -- as long as we're on solid ground and no laser is firing,
       -- we can control the tank
       control=true
     end
-    if (under==16) move_tank(4)
-    if (under==17) move_tank(2)
-    if (under==18) move_tank(8)
-    if (under==19) move_tank(1)
-    if not control then
-      if (under==25) move_tank()
-      if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
+    for obj in all(objects_on_ice) do
+      local new_x,new_y=directions[obj.direction](obj.x,obj.y)
+      move_object(obj.x,obj.y,obj.direction)
+      del(objects_on_ice,obj)
+    end
+    if not dynamic_actors[tank.y][tank.x] then
+      if (under==16) move_tank(4)
+      if (under==17) move_tank(2)
+      if (under==18) move_tank(8)
+      if (under==19) move_tank(1)
+      if not control then
+        if (under==25) move_tank()
+        if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
+      end
     end
     local button=btnp()
     if button==0x40 then
@@ -265,9 +272,14 @@ function move_laser()
   local new_x,new_y=directions[laser.direction](laser.x,laser.y)
   if (new_x==tank.x and new_y==tank.y) mode=modes.game_over
   local obj=mget(new_x,new_y)
-  if fget(obj,0) then
+  if mirrors[obj] and mirrors[obj][laser.direction] then
+    laser.x,laser.y=new_x,new_y
+    laser.obj=(laser.direction==4 or laser.direction==8) and 32 or 33
+    laser.direction=mirrors[obj][laser.direction]
+  elseif fget(obj,0) then
     -- movable object
     move_object(new_x,new_y,laser.direction)
+    laser=nil
   elseif rotate_mirrors[obj] then
     -- rotatable mirror
     laser.x,laser.y=new_x,new_y
@@ -296,22 +308,14 @@ function move_object(x,y,direction)
   if (obj==8 and direction==8) or (obj==9 and direction==1) or (obj==10 and direction==4) or (obj==11 and direction==2) then
     -- destroy antitank
     dynamic_actors[y][x].obj+=28
-    laser=nil
-  elseif mirrors[obj] and mirrors[obj][direction] then
-    laser.x,laser.y=x,y
-    laser.obj=(laser.direction==4 or laser.direction==8) and 32 or 33
-    laser.direction=mirrors[obj][direction]
   elseif new_x<0 or new_x>15 or new_y<0 or new_y>15 then
     -- move against out of bounds
-    laser=nil
   elseif fget(mget(new_x,new_y),1) then
     -- move against solid object
-    laser=nil
   elseif mget(new_x,new_y)==4 then
     -- move into water
     if (obj==6) static_actors[new_y][new_x]={x=new_x,y=new_y,obj=30}
     dynamic_actors[y][x]=nil
-    laser=nil
     control=false -- todo: hack?
   else
     if static_actors[new_y][new_x].obj>64 then
@@ -320,17 +324,25 @@ function move_object(x,y,direction)
         if not ((t.x==new_x and t.y==new_y) or (dynamic_actors[t.y][t.x] and not (t.x==x and t.y==y))) then
           dynamic_actors[t.y][t.x]={x=t.x,y=t.y,obj=dynamic_actors[y][x].obj}
           if (not (t.x==x and t.y==y)) dynamic_actors[y][x]=nil
-          laser=nil
           control=false
           return
         end
       end
     end
     -- move object
-    dynamic_actors[new_y][new_x]={x=new_x,y=new_y,obj=dynamic_actors[y][x].obj}
+    dynamic_actors[new_y][new_x]=dynamic_actors[y][x]
+    dynamic_actors[new_y][new_x].x=new_x
+    dynamic_actors[new_y][new_x].y=new_y
     dynamic_actors[y][x]=nil
-    laser=nil
     control=false -- todo: hack?
+    if static_actors[new_y][new_x].obj==25 then
+      dynamic_actors[new_y][new_x].direction=direction
+      add(objects_on_ice,dynamic_actors[new_y][new_x])
+    elseif static_actors[new_y][new_x].obj==26 then
+      static_actors[new_y][new_x].obj=4
+      dynamic_actors[new_y][new_x].direction=direction
+      add(objects_on_ice,dynamic_actors[new_y][new_x])
+    end
   end
 end
 
@@ -392,6 +404,7 @@ function load_level(lvl_number)
   end
   laser=nil
   control=true
+  objects_on_ice={}
   return {number=lvl_number,title=lvl[2],hint=lvl[3],author=lvl[4],difficulty=lvl[5]}
 end
 __gfx__
