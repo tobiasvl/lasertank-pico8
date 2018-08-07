@@ -106,50 +106,23 @@ function _update()
     menuitem(1,"show hint",function() mode=modes.hint end)
     menuitem(2,"restart",function() load_level(selected_level) end)
     menuitem(3,"level select",function() mode=modes.level_select end)
-    if laser then
-      move_laser()
-    else
-      if (not dynamic_actors[tank.y][tank.x]) detect_tank()
-    end
     local under=static_actors[tank.y][tank.x].obj
-    if (under==3) mode=modes.win
-    if (under==4) mode=modes.game_over
     if (under==1 or under==30 or under>64 or dynamic_actors[tank.y][tank.x] or not last_direction) and not laser then
       -- as long as we're on solid ground and no laser is firing,
       -- we can control the tank
       control=true
     end
-    for obj in all(objects_on_ice) do
-      local new_x,new_y=directions[obj.direction](obj.x,obj.y)
-      move_object(obj.x,obj.y,obj.direction)
-      del(objects_on_ice,obj)
-    end
-    if not dynamic_actors[tank.y][tank.x] then
-      if (under==16) move_tank(4)
-      if (under==17) move_tank(2)
-      if (under==18) move_tank(8)
-      if (under==19) move_tank(1)
-      if not control then
-        if (under==25) move_tank()
-        if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
-      end
-    end
-    local button=btnp()
-    if button==0x40 then
-      mode=modes.pause
-    end
-    if control and not laser and button==0x10 then
-      laser={x=tank.x,y=tank.y,direction=tank.direction}
+    if laser then
       move_laser()
-    elseif button==0x20 then
-      -- x
-    elseif control and not laser and button!=0 then
-      if tank.direction!=button then
-        turn_tank(button)
-      else
-        move_tank(button)
-      end
     end
+    if control then
+      read_keys()
+      detect_tank()
+    end
+    move_ice()
+    if (under==3) mode=modes.win
+    if (under==4) mode=modes.game_over
+    move_conveyor()
   end
 end
 
@@ -220,6 +193,25 @@ function center(str,y,c)
   print(str,64-(#str*2),y,c)
 end
 
+function read_keys()
+  local button=btnp()
+  if button==0x40 then
+    mode=modes.pause
+  end
+  if control and not laser and button==0x10 then
+    laser={x=tank.x,y=tank.y,direction=tank.direction}
+    move_laser()
+  elseif button==0x20 then
+    -- x
+  elseif control and not laser and button!=0 then
+    if tank.direction!=button then
+      turn_tank(button)
+    else
+      move_tank(button)
+    end
+  end
+end
+
 function turn_tank(button)
   local tank_sprites={
     [1]=29,
@@ -258,10 +250,9 @@ function move_tank(button)
     end
     tank.x,tank.y=new_x,new_y
     if control then
-      if (under==16) control=false
-      if (under==17) control=false
-      if (under==18) control=false
-      if (under==19) control=false
+      if under==16 or under==17 or under==18 or under==19 then
+        control=false
+      end
       if (under==25) control=false
       if (under==26) control=false
     end
@@ -269,6 +260,7 @@ function move_tank(button)
 end
 
 function move_laser()
+  if (not laser) return
   local new_x,new_y=directions[laser.direction](laser.x,laser.y)
   if (new_x==tank.x and new_y==tank.y) mode=modes.game_over
   local obj=mget(new_x,new_y)
@@ -299,6 +291,7 @@ function move_laser()
     laser=nil
   else
     laser.x,laser.y,laser.obj=new_x,new_y,(laser.direction==4 or laser.direction==8) and 32 or 33
+    new_x,new_y=directions[laser.direction](laser.x,laser.y)
   end
 end
 
@@ -347,6 +340,8 @@ function move_object(x,y,direction)
 end
 
 function detect_tank()
+  if (dynamic_actors[tank.y][tank.x]) return
+  if (laser) return
   for dir in all({2,1,8,4}) do
     local move,x,y=directions[dir],tank.x,tank.y
     repeat
@@ -355,10 +350,34 @@ function detect_tank()
     if (mget(x,y)==8 and dir==8) or (mget(x,y)==9 and dir==1) or (mget(x,y)==10 and dir==4) or (mget(x,y)==11 and dir==2) then
       laser={x=x,y=y,direction=opposite_directions[dir]}
       laser.obj=laser.direction==1 or laser.direction==2 and 35 or 34
-      move_laser()
       break
     end
   end
+  move_laser()
+end
+
+function move_ice()
+  for obj in all(objects_on_ice) do
+    local new_x,new_y=directions[obj.direction](obj.x,obj.y)
+    move_object(obj.x,obj.y,obj.direction)
+    del(objects_on_ice,obj)
+  end
+end
+
+function move_conveyor()
+  local under=static_actors[tank.y][tank.x].obj
+  if (not laser) detect_tank()
+  if not dynamic_actors[tank.y][tank.x] then
+    if (under==16) move_tank(4)
+    if (under==17) move_tank(2)
+    if (under==18) move_tank(8)
+    if (under==19) move_tank(1)
+    if not control then
+      if (under==25) move_tank()
+      if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
+    end
+  end
+  detect_tank()
 end
 
 function load_level(lvl_number)
