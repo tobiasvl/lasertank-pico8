@@ -4,20 +4,16 @@ __lua__
 -- lasertank
 -- by tobiasvl
 levels={
-  {
-    "0203030402040404000305001311100703030304040404140004000013120f03030303030303140b0004000003000003030303030307000418040d000900000309000006060600041804000404000003420400060504000419040e001300110300000006060516130e00040404000003040400000000000310030000030f0003420400040404040310030007040000030004400400000903100300001300110300040404000004031003000704000003000d00030000400305030000030f000305030309060606030303000004000003030d0b04040004031003000704001103030e0c040400000310030011110003000e000b04000a000f0f0300120f0f0f01",
-    "boot camp",
-    "this is the laser tank boot camp. it shows you a little of everything. the hardest thing is probably the mirror you need to move in the top right corner.",
-    "jim kindley",
-    2
-  },
-  {
-    "04111111111111111111111111100000041211111111111111111111101000000412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101005000412120000000000000500001010000004121200000000000000000010100000041212000000050000000000101000010412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101000000412120000000000000000001010000004121200000000000000000010100000041212000000000000000000101000000212120f0f0f0f0f0f0f0f0f0f1000000412120f0f0f0f0f0f0f0f0f0f0f0500",
-    "easy level conveyor",
-    "shoot block on to the conveyor to\nstop the tank.",
-    "reed",
-    2
-  },
+"02900304029104000305001311100791039204140004900013120f9503140b00049000039000940307000418040d0009900003099000910600041804009004900003420400060504000419040e0013001103910090060516130e009104900003900493000310039000030f0003420400920403100300070490000300044004900009031003900013001103009104900004031003000704900003000d00039000400305039000030f00030590030991069103900004900090030d0b90040004031003000704001190030e0c900490000310030090110003000e000b04000a00900f030012910f01",
+"boot camp",
+"this is the laser tank boot camp. it shows you a little of everything. the hardest thing is probably the mirror you need to move in the top right corner.",
+"jim kindley",
+2,
+"049a111090000412981190109000049012970090109000049012970090109000049012970090100500049012940005900090109000049012970090109000049012910005930090100001049012970090109000049012970090109000049012970090109000049012970090109000049012970090109000049012970090109000029012980f109000049012990f0500",
+"easy level conveyor",
+"shoot block on to the conveyor to\nstop the tank.",
+"reed",
+2,"95000b0e9b000b0d0c0e99000b0d90130c0e97000b0d92130c0e95000b0d94130c0e93000b0d96130c0e91000b0d98130c0e000b0d94139000019000130c0e0c0e9413090e050b07130b0d000c0e931393020b0d91000c0e96130b0d93000c0e94130b0d95000c0e92130b0d97000c0e90130b0d99000c0e0b0d9b000c0d9500",
 }
 
 difficulties={
@@ -96,7 +92,7 @@ function _update()
     if (btnp(2) and cam_y<0) cam_y+=5
     if (btnp(3) and cam_y>-160) cam_y-=5
     if (btnp(4)) mode=modes.title_screen
-    if (btnp(5)) level=load_level(1) mode=modes.play
+    if (btnp(5)) selected_level=1 level=load_level(1) mode=modes.play
   elseif mode==modes.pause then
     mode=modes.play
   elseif mode==modes.hint then
@@ -106,7 +102,7 @@ function _update()
   elseif mode==modes.win then
     if btnp(5) then
       selected_level+=1
-      if selected_level<=#levels then
+      if selected_level<=#levels/5 then
         level=load_level(selected_level)
         dset(0,selected_level)
         mode=modes.play
@@ -122,7 +118,7 @@ function _update()
       if (selected_level>1) selected_level-=1
       if (selected_level<(page*20)+1) page-=1
     elseif btnp(3) then
-      if (selected_level<#levels) selected_level+=1
+      if (selected_level<#levels/5) selected_level+=1
       if (selected_level>(page*20)+20) page+=1
     end
     if (btnp(5)) level=load_level(selected_level) mode=modes.play dset(0,selected_level)
@@ -255,18 +251,17 @@ function _draw()
   elseif mode==modes.level_select then
     cls()
     for i=(page*20)+1,(page*20)+20 do
-      if i<=#levels then
+      if i<=#levels/5 then
         if selected_level==i then
           local y=peek(0x5f27)
           rectfill(peek(0x5f26),y,127,y+5,4)
         end
-        local lvl=levels[i]
-        if (difficulties[lvl[5]]) color(difficulties[lvl[5]][2]) else color(7)
-        print(i.." "..lvl[2])
+        if (difficulties[levels[((i-1)*5)+5]]) color(difficulties[levels[((i-1)*5)+5]][2]) else color(7)
+        print(i.." "..levels[((i-1)*5)+2])
       end
     end
     if (page>0) print("\148",120,0)
-    if ((page*20)+20<#levels) print("\131",120,114)
+    if ((page*20)+20<#levels/5) print("\131",120,114)
   end
 end
 
@@ -463,7 +458,7 @@ function move_conveyor()
 end
 
 function load_level(lvl_number)
-  local lvl=levels[lvl_number]
+  local lvl=levels[((lvl_number-1)*5)+1]
   static_actors={}
   for y=0,15 do
     static_actors[y]={}
@@ -482,31 +477,48 @@ function load_level(lvl_number)
   for t=65,79,2 do
     tunnels[t]={}
   end
-  for s=1,512,2 do
-    y=((s-1)%32)/2
-    x=flr((s-1)/32)
-    local obj=tonum("0x"..sub(lvl[1],s,s+1))+1
-    if obj==2 then
-      tank={x=x,y=y,direction=4,obj=2}
-    elseif fget(obj,0) then
-      dynamic_actors[y][x]={x=x,y=y,obj=obj}
-      static_actors[y][x]={x=x,y=y,obj=1}
+  local s=1
+  local actual_s=1
+  local byte=tonum("0x"..sub(lvl,s,s+1))
+  while byte do -- 0xa0
+    local run=1
+    if band(byte,0xf0)==0x90 then
+      run=band(byte,0x0f)+2
+      s+=2
+      obj=tonum("0x"..sub(lvl,s,s+1))+1
     else
-      static_actors[y][x]={x=x,y=y,obj=obj}
+      obj=byte+1
     end
-  end
-  for y=0,15 do
-    for x=0,15 do
-      obj=static_actors[y][x].obj
-      if obj>64 then
-        add(tunnels[obj],{x=x,y=y})
+    for i=1,run do
+      y=((actual_s-1)%32)/2
+      x=flr((actual_s-1)/32)
+
+      if obj==2 then
+        print("found")
+        tank={x=x,y=y,direction=4,obj=2}
+      elseif fget(obj,0) then
+        dynamic_actors[y][x]={x=x,y=y,obj=obj}
+        static_actors[y][x]={x=x,y=y,obj=1}
+      else
+        static_actors[y][x]={x=x,y=y,obj=obj}
+      end
+      actual_s+=2
+    end
+    for y=0,15 do
+      for x=0,15 do
+        obj=static_actors[y][x].obj
+        if obj>64 then
+          add(tunnels[obj],{x=x,y=y})
+        end
       end
     end
+    s+=2
+    byte=tonum("0x"..sub(lvl,s,s+1))
   end
   laser=nil
   control=true
   objects_on_ice={}
-  return {number=lvl_number,title=lvl[2],hint=lvl[3],author=lvl[4],difficulty=lvl[5]}
+  return {number=lvl_number,title=levels[((lvl_number-1)*5)+2],hint=levels[((lvl_number-1)*5)+3],author=levels[((lvl_number-1)*5)+4],difficulty=levels[((lvl_number-1)*5)+5]}
 end
 __gfx__
 0000000044444444000bb000a4444444111cc11177777777eeeeeeee88588858000880000666666006666660066666600000000aa0000000eeeeee9aa9eeeeee
