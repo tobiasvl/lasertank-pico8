@@ -378,10 +378,15 @@ function move_object(x,y,direction)
   if (obj==8 and direction==8) or (obj==9 and direction==1) or (obj==10 and direction==4) or (obj==11 and direction==2) then
     -- destroy antitank
     dynamic_actors[y][x].obj+=28
-  elseif new_x<0 or new_x>15 or new_y<0 or new_y>15 then
+  elseif new_x<0 or new_x>15 or new_y<0 or new_y>15 or fget(mget(new_x,new_y),1) then
     -- move against out of bounds
-  elseif fget(mget(new_x,new_y),1) then
     -- move against solid object
+    if static_actors[y][x].obj==4 then
+      -- move into water
+      if (obj==6) static_actors[y][x].obj=30
+      dynamic_actors[y][x]=nil
+      control=false -- todo: hack?
+    end
   elseif mget(new_x,new_y)==4 then
     -- move into water
     if (obj==6) static_actors[new_y][new_x]={x=new_x,y=new_y,obj=30}
