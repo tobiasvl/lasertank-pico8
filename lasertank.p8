@@ -17,11 +17,11 @@ levels={
 }
 
 difficulties={
-  {"kids",10},
-  {"easy",12},
-  {"medium",11},
-  {"hard",2},
-  {"deadly",8}
+  [1]={"kids",10},
+  [2]={"easy",12},
+  [4]={"medium",11},
+  [8]={"hard",2},
+  [10]={"deadly",8}
 }
 
 modes={
