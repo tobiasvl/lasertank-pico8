@@ -260,8 +260,8 @@ function _draw()
         print(i.." "..levels[((i-1)*5)+2])
       end
     end
-    if (page>0) print("\148",120,0)
-    if ((page*20)+20<#levels/5) print("\131",120,114)
+    if (page>0) print("\148",120,0,7)
+    if ((page*20)+20<#levels/5) print("\131",120,114,7)
   end
 end
 
