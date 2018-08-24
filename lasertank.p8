@@ -426,6 +426,7 @@ function detect_tank()
     if (mget(x,y)==8 and dir==8) or (mget(x,y)==9 and dir==1) or (mget(x,y)==10 and dir==4) or (mget(x,y)==11 and dir==2) then
       laser={x=x,y=y,direction=opposite_directions[dir]}
       laser.obj=laser.direction==1 or laser.direction==2 and 35 or 34
+      --move_laser() -- the original does it
       break
     end
   end
@@ -451,7 +452,6 @@ end
 
 function move_conveyor()
   local under=static_actors[tank.y][tank.x].obj
-  if (not laser) detect_tank()
   if not dynamic_actors[tank.y][tank.x] then
     if (under==16) move_tank(4)
     if (under==17) move_tank(2)
@@ -462,7 +462,7 @@ function move_conveyor()
       if (under==26) static_actors[tank.y][tank.x]={x=tank.x,y=tank.y,obj=4} move_tank()
     end
   end
-  detect_tank()
+  if (not laser) detect_tank()
 end
 
 function load_level(lvl_number)
